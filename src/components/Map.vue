@@ -10,44 +10,37 @@ div {
 </style>
 
 <script>
-import { fetchPoints } from '../util';
-import * as turf from '@turf/turf'
+import * as turf from '@turf/turf';
 
 export default {
   name: 'Map',
-  beforeCreate: function () {
-    fetchPoints().then(({ results }) => {
-      if (results.length > 1000) {
-        console.error('too many points:', results);
-      }
-      const line = turf.lineString(
-        results.map(({ latlng }) => ([latlng.longitude, latlng.latitude]))
-      );
-      const bbox = turf.bbox(line);
-      this.initMap([bbox.slice(0, 2), bbox.slice(2)], line);
-    });
+  beforeCreate () {
+    this.$store.dispatch('fetchPoints');
   },
-  methods: {
-    initMap(bounds, geojson) {
-      /* global mapboxgl */
-      const map = new mapboxgl.Map({
-        container: this.$refs.map,
-        style: 'mapbox://styles/mapbox/light-v10',
-        // hash: true,
-      });
-      map.fitBounds(bounds, {
-        padding: 20,
-        maxZoom: 15,
-        animate: false
-      });
+  mounted () {
+    /* global mapboxgl */
+    const map = this.map = new mapboxgl.Map({
+      container: this.$refs.map,
+      style: 'mapbox://styles/mapbox/light-v10',
+      // hash: true,
+    });
 
-      map.on('load', () => {
+    window._map = map;
+
+    map.on('load', () => {
         // https://docs.mapbox.com/mapbox-gl-js/example/line-gradient/
 
         map.addSource('line', {
           type: 'geojson',
           lineMetrics: true,
-          data: geojson
+          data: {
+            "type": "Feature",
+            "properties": {},
+            "geometry": {
+              "type": "LineString",
+              "coordinates": []
+            }
+          }
         });
 
         map.addLayer({
@@ -77,8 +70,50 @@ export default {
           }
         });
       });
+  },
+  computed: {
+    line() {
+      const results = this.$store.state.results;
+      if (results.length) {
+        return turf.lineString(
+          results.map(({ latlng }) => ([latlng.longitude, latlng.latitude]))
+        )
+      }
+      return null;
+    },
+    bounds() {
+      if (!this.line) {
+        return;
+      }
+      const bbox = turf.bbox(this.line);
+      return [bbox.slice(0, 2), bbox.slice(2)];
+    }
+  },
+  watch: {
+    bounds (bounds) {
+      bounds && bounds.length && this.updateMap(bounds, this.line);
+    }
+  },
+  methods: {
+    updateMap(bounds, geojson) {
+      // console.log(bounds, geojson);
+      const map = this.map;
+      map.fitBounds(bounds, {
+        padding: 20,
+        maxZoom: 15,
+        animate: false
+      });
 
-      
+      const source = map.getSource('line');
+
+      if (source) {
+        source.setData(geojson);
+      } else {
+        map.on('load', () => {
+          map.getSource('line').setData(geojson)
+        });
+      }
+
     }
   }
 }

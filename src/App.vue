@@ -1,7 +1,7 @@
 <template>
   <v-app id="app">
-    <router-view name="map"></router-view>
-    <router-view name="picker"></router-view>
+    <Map />
+    <Picker />
   </v-app>
 </template>
 
@@ -20,3 +20,15 @@ html, body {
   height: 100%;
 }
 </style>
+
+<script>
+import Map from './components/Map';
+import Picker from './components/Picker';
+
+export default {
+  components: {
+    Map,
+    Picker
+  }
+}
+</script>

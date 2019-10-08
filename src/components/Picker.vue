@@ -1,6 +1,6 @@
 <template>
 <v-container class="container" fluid>
-  <v-card color="#fff">
+  <v-card color="#fff" v-show="picking">
     <v-date-picker
       v-model="dateRange"
       no-title
@@ -11,7 +11,7 @@
     <v-slider
       v-model="timeFrom"
       :tick-labels="ticksLabels"
-      :max="12"
+      :max="24"
       color="grey"
       track-color="primary"
       step="1"
@@ -21,7 +21,7 @@
     <v-slider
       v-model="timeTo"
       :tick-labels="ticksLabels"
-      :max="12"
+      :max="24"
       track-color="grey"
       step="1"
       ticks="always"
@@ -29,9 +29,21 @@
     ></v-slider>
 
     <v-card-actions class="actions">
-      <v-btn depressed color="primary">Query</v-btn>
+      <v-btn @click="query" depressed color="primary">Query</v-btn>
     </v-card-actions>
   </v-card>
+
+  <v-btn
+    absolute
+    fab
+    right
+    color="primary"
+    class="fab"
+    @click="showPicker"
+    v-show="!picking"
+  >
+    <v-icon>mdi-calendar-range</v-icon>
+  </v-btn>
 </v-container>
 </template>
 
@@ -42,24 +54,22 @@
 .actions {
   justify-content: flex-end;
 }
+.fab {
+  position: fixed;
+  bottom: 36px;
+}
 </style>
 
 <script>
 export default {
   name: 'Picker',
   data: () => ({
-    ticksLabels: [...Array(13)].map((_, i) => {
-      switch (i) {
-        case 0:
-        case 6:
-        case 12:
-          return i + '';
-        default:
-          return ''
-      }
-    })
+    ticksLabels: [...Array(25)].map((_, i) => i % 6 === 0 ? ('' + i) : '')
   }),
   computed: {
+    picking () {
+      return this.$store.state.picking;
+    },
     timeFrom: {
       get () {
         return this.$store.state.timeFrom.split(':')[0];
@@ -81,9 +91,18 @@ export default {
         return this.$store.state.dateRange;
       },
       set (v) {
-        this.$store.commit('changeDateRange', v);
+        this.$store.commit('changeDateRange', v.sort());
       }
     }
   },
+  methods: {
+    query() {
+      this.$store.dispatch('fetchPoints');
+      this.$store.commit('togglePicker');
+    },
+    showPicker() {
+      this.$store.commit('togglePicker');
+    }
+  }
 }
 </script>
