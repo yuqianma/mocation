@@ -1,6 +1,5 @@
+import { request } from './request';
 import { encodeParams } from './encodeParams';
-
-const URL = 'http://mocation.hcifun.com/1.1/classes/Point';
 
 export function fetchPoints (from, to = new Date()) {
   from = from || (to - 86400e3);
@@ -23,15 +22,5 @@ export function fetchPoints (from, to = new Date()) {
     limit: 1000
   };
 
-  return fetch(`${URL}?${encodeParams(params)}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      'X-LC-Id': 'XHtq6Obuh8H3cRMECcVdoDT3-gzGzoHsz',
-      'X-LC-Key': 'r4wDxAEdcwRyC7RF0Y5KsyTt'
-    },
-    method: 'GET',
-    mode: 'cors'
-  })
-  .then(r => r.json())
-  .catch(error => console.error('Error:', error));
+  return request(`/classes/Point?${encodeParams(params)}`)
 }

@@ -1,18 +1,34 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
+import store from '../store';
 
-import Map from '../components/Map';
-import Picker from '../components/Picker';
+import Dashboard from '../views/Dashboard';
+import Login from '../views/Login';
 
 Vue.use(VueRouter);
 
 const routes = [
   {
-    path: '',
-    components: {
-      map: Map,
-      picker: Picker,
+    path: '/login',
+    component: Login,
+    beforeEnter(to, from, next) {
+      if (store.state.user.sessionToken) {
+        next({ path: '/', replace: true });
+      } else {
+        next();
+      }
     }
+  },
+  {
+    path: '/',
+    component: Dashboard,
+    beforeEnter(to, from, next) {
+      if (!store.state.user.sessionToken) {
+        next({ path: '/login', replace: true });
+      } else {
+        next();
+      }
+    },
   }
 ];
 

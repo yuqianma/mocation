@@ -1,34 +1,26 @@
 <template>
-  <v-app id="app">
+  <v-app id="app" :class="{ blur: blur }">
     <Map />
-    <Picker />
+    <router-view />
   </v-app>
 </template>
 
 <style>
-html, body {
-  height: 100%;
-  margin: 0;
-}
-
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  height: 100%;
+.blur .v-application--wrap > *:not(.noblur) {
+  filter: blur(1px);
 }
 </style>
 
 <script>
+import { mapState } from 'vuex';
 import Map from './components/Map';
-import Picker from './components/Picker';
 
 export default {
   components: {
     Map,
-    Picker
+  },
+  computed: {
+    ...mapState(['blur'])
   }
 }
 </script>
