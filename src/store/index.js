@@ -56,6 +56,9 @@ export default new Vuex.Store({
   actions: {
     fetchPoints({ commit, getters }) {
       return fetchPoints(...getters.range).then(({ results }) => {
+        if (!results) {
+          return;
+        }
         if (results.length > 1000) {
           commit('setErrorMsg', 'too many points');
           console.error('too many points:', results);

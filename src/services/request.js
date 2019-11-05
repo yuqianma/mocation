@@ -15,9 +15,13 @@ export const request = async (url, options = {}) => {
   
   try {
     const response = await fetch(process.env.VUE_APP_API_BASE_URL + url, options);
-    const result = await response.json();
-    return result;
+    const json = await response.json();
+    if (response.ok) {
+      return json;
+    } else {
+      throw json;
+    }
   } catch (error) {
-    store.commit('setErrorMsg', error);
+    store.commit('setErrorMsg', error && error.error || error);
   }
 };
