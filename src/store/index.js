@@ -51,14 +51,15 @@ export default new Vuex.Store({
     changeTimeFrom: (s, _) => (s.timeFrom = _),
     changeTimeTo: (s, _) => (s.timeTo = _),
     setResults: (s, _) => (s.results = _),
-    togglePicker: (s) => (s.picking = !s.picking)
+    togglePicker: (s, _) => (s.picking = _)
   },
   actions: {
     fetchPoints({ commit, getters }) {
-      return fetchPoints(...getters.range).then(({ results }) => {
-        if (!results) {
+      return fetchPoints(...getters.range).then((res) => {
+        if (!res) {
           return;
         }
+        const { results = [] } = res;
         if (results.length > 1000) {
           commit('setErrorMsg', 'too many points');
           console.error('too many points:', results);

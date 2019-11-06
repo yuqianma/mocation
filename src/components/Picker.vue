@@ -1,37 +1,44 @@
 <template>
-<v-container class="container" fluid>
-  <v-card color="#fff" v-show="picking">
-    <v-date-picker
-      v-model="dateRange"
-      no-title
-      full-width
-      show-current
-      range
-    ></v-date-picker>
-    <v-slider
-      v-model="timeFrom"
-      :tick-labels="ticksLabels"
-      :max="24"
-      color="grey"
-      track-color="primary"
-      step="1"
-      ticks="always"
-      thumb-label
-    ></v-slider>
-    <v-slider
-      v-model="timeTo"
-      :tick-labels="ticksLabels"
-      :max="24"
-      track-color="grey"
-      step="1"
-      ticks="always"
-      thumb-label
-    ></v-slider>
+<v-container
+  fluid
+  :class="{ 'fill-height': picking }"
+  style="align-items: flex-start;"
+  @click="handleBlankClick"
+>
+  <v-slide-y-transition>
+    <v-card color="#fff" v-show="picking">
+      <v-date-picker
+        v-model="dateRange"
+        no-title
+        full-width
+        show-current
+        range
+      ></v-date-picker>
+      <v-slider
+        v-model="timeFrom"
+        :tick-labels="ticksLabels"
+        :max="24"
+        color="grey"
+        track-color="primary"
+        step="1"
+        ticks="always"
+        thumb-label
+      ></v-slider>
+      <v-slider
+        v-model="timeTo"
+        :tick-labels="ticksLabels"
+        :max="24"
+        track-color="grey"
+        step="1"
+        ticks="always"
+        thumb-label
+      ></v-slider>
 
-    <v-card-actions class="actions">
-      <v-btn @click="query" depressed color="primary">Query</v-btn>
-    </v-card-actions>
-  </v-card>
+      <v-card-actions class="actions">
+        <v-btn @click="query" depressed color="primary">Query</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-slide-y-transition>
 
   <v-btn
     absolute
@@ -61,6 +68,8 @@
 </style>
 
 <script>
+import { mapActions, mapMutations } from 'vuex';
+
 export default {
   name: 'Picker',
   data: () => ({
@@ -96,12 +105,24 @@ export default {
     }
   },
   methods: {
+    ...mapMutations(['setBlur', 'togglePicker']),
+    ...mapActions(['fetchPoints']),
     query() {
-      this.$store.dispatch('fetchPoints');
-      this.$store.commit('togglePicker');
+      this.fetchPoints();
+      this.hidePicker();
     },
     showPicker() {
-      this.$store.commit('togglePicker');
+      this.togglePicker(true);
+      this.setBlur(true);
+    },
+    hidePicker() {
+      this.togglePicker(false);
+      this.setBlur(false);
+    },
+    handleBlankClick(e) {
+      if (e.target === e.currentTarget) {
+        this.hidePicker();
+      }
     }
   }
 }

@@ -1,13 +1,19 @@
 <template>
-  <v-container class="noblur">
+  <v-container
+    class="fill-height"
+    fluid
+  >
     <v-row
       align="center"
       justify="center"
     >
       <v-col
         cols="12"
+        xs="12"
         sm="8"
-        md="4"
+        md="6"
+        lg="4"
+        xl="4"
       >
         <v-card class="elevation-12">
           <v-toolbar
@@ -45,13 +51,6 @@
 </template>
 
 <style scoped>
-.container {
-  position: absolute;
-  top: 0;
-  width: 100vw;
-  height: 100vh;
-  padding-top: 30%;
-}
 </style>
 
 <script>

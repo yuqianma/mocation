@@ -1,33 +1,31 @@
 <template>
-  <v-app id="app" :class="{ blur: blur }">
+  <v-app id="app">
     <Map />
     <router-view />
-    <v-alert
-      :value="alertVisible"
-      dense
-      dismissible
-      type="error"
-      class="noblur"
-      @input="close"
-    >
-      {{errorMsg}}
-    </v-alert>
+    <div class="alert-wrapper">
+      <v-alert
+        :value="alertVisible"
+        dismissible
+        transition="fade-transition"
+        type="error"
+        @input="close"
+      >
+        {{errorMsg && errorMsg.error || errorMsg}}
+      </v-alert>
+    </div>
   </v-app>
 </template>
 
 <style>
-.blur .v-application--wrap > *:not(.noblur) {
-  filter: blur(1px);
-}
-#app .v-alert {
+#app .alert-wrapper {
   position: fixed;
   top: 0;
-  margin: 10px;
+  padding: 5px;
+  width: 100vw;
 }
 </style>
 
 <script>
-import { mapState } from 'vuex';
 import Map from './components/Map';
 
 export default {
@@ -45,7 +43,9 @@ export default {
     }
   },
   computed: {
-    ...mapState(['blur', 'errorMsg'])
+    errorMsg() {
+      return this.$store.state.errorMsg;
+    }
   },
   methods: {
     close() {

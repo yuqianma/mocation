@@ -22,6 +22,6 @@ export const request = async (url, options = {}) => {
       throw json;
     }
   } catch (error) {
-    store.commit('setErrorMsg', error && error.error || error);
+    store.commit('setErrorMsg', error);
   }
 };

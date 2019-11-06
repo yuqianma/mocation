@@ -1,16 +1,28 @@
 <template>
-  <div ref="map"></div>
+  <div ref="map" :class="blur ? 'blur' : 'no-blur'"></div>
 </template>
 
 <style scoped>
 div {
-  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   background: #ccc;
+  transition: filter 0.3s;
+}
+.blur {
+  filter: blur(2px);
+}
+.no-blur {
+  filter: blur(0);
 }
 </style>
 
 <script>
 import * as turf from '@turf/turf';
+import { mapState } from 'vuex';
 
 export default {
   name: 'Map',
@@ -72,6 +84,7 @@ export default {
       });
   },
   computed: {
+    ...mapState(['blur']),
     line() {
       const results = this.$store.state.results;
       if (results.length) {
