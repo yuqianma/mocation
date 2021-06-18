@@ -42,46 +42,89 @@ export default {
     map.on('load', () => {
         // https://docs.mapbox.com/mapbox-gl-js/example/line-gradient/
 
-        map.addSource('line', {
-          type: 'geojson',
-          lineMetrics: true,
-          data: {
-            "type": "Feature",
-            "properties": {},
-            "geometry": {
-              "type": "LineString",
-              "coordinates": []
-            }
+      map.addSource('line', {
+        type: 'geojson',
+        lineMetrics: true,
+        data: {
+          "type": "Feature",
+          "properties": {},
+          "geometry": {
+            "type": "LineString",
+            "coordinates": []
           }
-        });
-
-        map.addLayer({
-          type: 'line',
-          source: 'line',
-          id: 'line',
-          paint: {
-            'line-color': 'red',
-            'line-width': 5,
-            // 'line-gradient' must be specified using an expression
-            // with the special 'line-progress' property
-            'line-gradient': [
-              'interpolate',
-              ['linear'],
-              ['line-progress'],
-              0, "blue",
-              0.1, "royalblue",
-              0.3, "cyan",
-              0.5, "lime",
-              0.7, "yellow",
-              1, "red"
-            ]
-          },
-          layout: {
-            'line-cap': 'round',
-            'line-join': 'round'
-          }
-        });
+        }
       });
+
+      map.addSource('highlight', {
+        type: 'geojson',
+        lineMetrics: true,
+        data: {
+          "type": "Feature",
+          "properties": {},
+          "geometry": {
+            "type": "LineString",
+            "coordinates": []
+          }
+        }
+      });
+
+      map.addLayer({
+        type: 'line',
+        source: 'line',
+        id: 'line',
+        paint: {
+          'line-color': 'red',
+          'line-width': 5,
+          // 'line-gradient' must be specified using an expression
+          // with the special 'line-progress' property
+          'line-gradient': [
+            'interpolate',
+            ['linear'],
+            ['line-progress'],
+            0, "blue",
+            0.1, "royalblue",
+            0.3, "cyan",
+            0.5, "lime",
+            0.7, "yellow",
+            1, "red"
+          ]
+        },
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round'
+        }
+      });
+
+      map.addLayer({
+        type: 'line',
+        source: 'highlight',
+        id: 'highlight',
+        paint: {
+          'line-color': 'red',
+          'line-width': 2,
+        },
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round'
+        }
+      });
+
+      map.on('click', function (e) {
+        const delta = 1e-20;
+        // set bbox as 5px reactangle area around clicked point
+        var bbox = [
+          [e.point.x - delta, e.point.y - delta],
+          [e.point.x + delta, e.point.y + delta]
+        ];
+        var features = map.queryRenderedFeatures(bbox, {
+          layers: ['line']
+        });
+        console.log(features);
+
+        map.getSource('highlight').setData(features[0]);
+      });
+
+    });
   },
   computed: {
     ...mapState(['blur']),
