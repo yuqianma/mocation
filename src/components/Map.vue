@@ -55,17 +55,9 @@ export default {
         }
       });
 
-      map.addSource('highlight', {
+      map.addSource('points', {
         type: 'geojson',
-        lineMetrics: true,
-        data: {
-          "type": "Feature",
-          "properties": {},
-          "geometry": {
-            "type": "LineString",
-            "coordinates": []
-          }
-        }
+        data: null
       });
 
       map.addLayer({
@@ -96,32 +88,28 @@ export default {
       });
 
       map.addLayer({
-        type: 'line',
-        source: 'highlight',
-        id: 'highlight',
-        paint: {
-          'line-color': 'red',
-          'line-width': 2,
+        type: 'circle',
+        source: 'points',
+        id: 'points',
+        'paint': {
+          'circle-radius': 2,
+          'circle-color': 'red'
         },
-        layout: {
-          'line-cap': 'round',
-          'line-join': 'round'
-        }
       });
 
       map.on('click', function (e) {
-        const delta = 1e-20;
+        const delta = 1e-50;
         // set bbox as 5px reactangle area around clicked point
         var bbox = [
           [e.point.x - delta, e.point.y - delta],
           [e.point.x + delta, e.point.y + delta]
         ];
         var features = map.queryRenderedFeatures(bbox, {
-          layers: ['line']
+          layers: ['points']
         });
         console.log(features);
 
-        map.getSource('highlight').setData(features[0]);
+        // map.getSource('points').setData(features[0]);
       });
 
     });
@@ -137,6 +125,18 @@ export default {
       }
       return null;
     },
+    points() {
+      const results = this.$store.state.results;
+      if (results.length) {
+        return turf.featureCollection(
+          results.map((p) => {
+            console.log(p);
+            return turf.point([p.latlng.longitude, p.latlng.latitude], p);
+          })
+        );
+      }
+      return null;
+    },
     bounds() {
       if (!this.line) {
         return;
@@ -147,12 +147,12 @@ export default {
   },
   watch: {
     bounds (bounds) {
-      bounds && bounds.length && this.updateMap(bounds, this.line);
+      bounds && bounds.length && this.updateMap(bounds, this.line, this.points);
     }
   },
   methods: {
-    updateMap(bounds, geojson) {
-      // console.log(bounds, geojson);
+    updateMap(bounds, line, points) {
+      console.log(points);
       const map = this.map;
       map.fitBounds(bounds, {
         padding: 20,
@@ -160,13 +160,16 @@ export default {
         animate: false
       });
 
-      const source = map.getSource('line');
+      const lineSource = map.getSource('line');
+      const pointsSource = map.getSource('points');
 
-      if (source) {
-        source.setData(geojson);
+      if (lineSource) {
+        lineSource.setData(line);
+        pointsSource.setData(points);
       } else {
         map.on('load', () => {
-          map.getSource('line').setData(geojson)
+          map.getSource('line').setData(line);
+          map.getSource('points').setData(points);
         });
       }
 

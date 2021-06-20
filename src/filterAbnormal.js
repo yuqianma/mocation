@@ -26,11 +26,6 @@ export function filterAbnormal(points) {
 			console.warn(p);
 		}
 
-		// if (Math.abs(p.latlng.longitude - 100.15) < 0.01) {
-		// 	console.log(p);
-		// 	return false;
-		// }
-
 		if (speed > 1000) {
 			console.log(pre, p, speed);
 			return false;

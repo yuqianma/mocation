@@ -6,10 +6,10 @@ import { filterAbnormal } from '../filterAbnormal';
 
 Vue.use(Vuex);
 
-// const Now = dayjs().add(1, 'h').startOf('h');
-// const Range = [Now.subtract(1, 'd'), Now];
-const Now = dayjs('2021/06/17 20:00:00');
-const Range = [dayjs('2021/06/17 18:00:00'), Now];
+const Now = dayjs().add(1, 'h').startOf('h');
+const Range = [Now.subtract(1, 'd'), Now];
+// const Now = dayjs('2021/06/17 20:00:00');
+// const Range = [dayjs('2021/06/17 18:00:00'), Now];
 
 const syncLocalStorage = store => {
   store.subscribe((mutation) => {
@@ -57,20 +57,19 @@ export default new Vuex.Store({
     togglePicker: (s, _) => (s.picking = _)
   },
   actions: {
-    fetchPoints({ commit, getters }) {
-      return fetchPoints(...getters.range).then((res) => {
-        if (!res) {
-          return;
-        }
-        let { results = [] } = res;
-        results = filterAbnormal(results);
-        if (results.length > 1000) {
-          commit('setErrorMsg', 'too many points');
-          console.error('too many points:', results);
-        } else {
-          commit('setResults', results);
-        }
-      });
+    async fetchPoints({ commit, getters }) {
+      const res = await fetchPoints(...getters.range);
+      if (!(res && Array.isArray(res.results))) {
+        return [];
+      }
+      let { results } = res;
+      results = Object.freeze(filterAbnormal(results));
+      if (results.length > 1000) {
+        commit('setErrorMsg', 'too many points');
+        console.error('too many points:', results);
+      } else {
+        commit('setResults', results);
+      }
     },
     login({ commit }, { name, password }) {
       return login({ username: name, password }).then(({ username, sessionToken }) => {
