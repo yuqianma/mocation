@@ -130,7 +130,6 @@ export default {
       if (results.length) {
         return turf.featureCollection(
           results.map((p) => {
-            console.log(p);
             return turf.point([p.latlng.longitude, p.latlng.latitude], p);
           })
         );
@@ -152,7 +151,6 @@ export default {
   },
   methods: {
     updateMap(bounds, line, points) {
-      console.log(points);
       const map = this.map;
       map.fitBounds(bounds, {
         padding: 20,

@@ -2,7 +2,6 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import dayjs from 'dayjs';
 import { fetchPoints, login } from '../services';
-import { filterAbnormal } from '../filterAbnormal';
 
 Vue.use(Vuex);
 
@@ -58,17 +57,12 @@ export default new Vuex.Store({
   },
   actions: {
     async fetchPoints({ commit, getters }) {
-      const res = await fetchPoints(...getters.range);
-      if (!(res && Array.isArray(res.results))) {
-        return [];
-      }
-      let { results } = res;
-      results = Object.freeze(filterAbnormal(results));
-      if (results.length > 1000) {
-        commit('setErrorMsg', 'too many points');
-        console.error('too many points:', results);
-      } else {
+      try {
+        const results = await fetchPoints(...getters.range);
         commit('setResults', results);
+      } catch (e) {
+        commit('setErrorMsg', e);
+        console.error(e);
       }
     },
     login({ commit }, { name, password }) {
