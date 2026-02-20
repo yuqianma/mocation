@@ -1,38 +1,38 @@
 import * as turf from '@turf/turf';
 
+function pointTimestamp(point) {
+  return point.createdAt || point.time;
+}
+
 export function filterAbnormal(points) {
-	if (points.length <= 2) {
-		return points;
-	}
+  if (!Array.isArray(points) || points.length <= 2) {
+    return points || [];
+  }
 
-	let pre = null;
+  let previous = null;
 
-	return points.filter((p, i) => {
-		if (i === 0) {
-			pre = p;
-			return true;
-		}
-		
-		const dis = turf.distance(
-			turf.point([pre.latlng.longitude, pre.latlng.latitude]),
-			turf.point([p.latlng.longitude, p.latlng.latitude])
-		);
+  return points.filter((point, index) => {
+    if (index === 0) {
+      previous = point;
+      return true;
+    }
 
-		const duration = (new Date(p.createdAt) - new Date(pre.createdAt)) / 1000 / 3600;
+    const dis = turf.distance(
+      turf.point([previous.latlng.longitude, previous.latlng.latitude]),
+      turf.point([point.latlng.longitude, point.latlng.latitude])
+    );
 
-		const speed = dis / duration;
+    const currentTime = new Date(pointTimestamp(point));
+    const previousTime = new Date(pointTimestamp(previous));
+    const duration = (currentTime - previousTime) / 1000 / 3600;
 
-		if (Math.abs(p.latlng.latitude - 25.905162088999376) < 0.01 && Math.abs(p.latlng.longitude - 100.19756589084864) < 0.01) {
-			console.warn(p);
-		}
+    const speed = duration > 0 ? dis / duration : Number.POSITIVE_INFINITY;
 
-		if (speed > 1000) {
-			console.log(pre, p, speed);
-			return false;
-		}
-		pre = p;
-		return true;
-	});
+    if (speed > 1000) {
+      return false;
+    }
 
-
+    previous = point;
+    return true;
+  });
 }

@@ -1,34 +1,35 @@
-import { request } from './request';
-import { encodeParams } from './encodeParams';
-import { filterAbnormal } from '../filterAbnormal';
+import { encodeParams } from '@/services/encodeParams';
+import { filterAbnormal } from '@/filterAbnormal';
+import { request } from '@/services/request';
 
-export async function fetchPoints (from, to = new Date()) {
-  from = from || (to - 86400e3);
+export async function fetchPoints(from, to = new Date(), sessionToken) {
+  const toDate = new Date(to);
+  const fromDate = from ? new Date(from) : new Date(toDate.getTime() - 86400e3);
 
   const params = {
     where: {
       time: {
-        // $gte: {
-        //   __type: 'Date',
-        //   iso: new Date(from).toISOString()
-        // },
+        $gte: {
+          __type: 'Date',
+          iso: fromDate.toISOString(),
+        },
         $lte: {
           __type: 'Date',
-          iso: new Date(to).toISOString()
-        }
-      }
+          iso: toDate.toISOString(),
+        },
+      },
     },
-    keys: 'latlng,time,s',
+    keys: 'latlng,time,s,createdAt',
     order: '-time',
-    limit: 1000
+    limit: 1000,
   };
 
-  const res = await request(`/classes/Point?${encodeParams(params)}`);
-  if (!(res && Array.isArray(res.results))) {
+  const response = await request(`/classes/Point?${encodeParams(params)}`, { sessionToken });
+
+  if (!(response && Array.isArray(response.results))) {
     return [];
   }
-  let { results } = res;
-  results = results.reverse();
-  results = Object.freeze(filterAbnormal(results));
-  return results;
+
+  const results = response.results.slice().reverse();
+  return Object.freeze(filterAbnormal(results));
 }
