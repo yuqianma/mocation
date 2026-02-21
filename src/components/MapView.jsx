@@ -7,6 +7,7 @@ import { useApp } from '@/context/AppContext';
 
 const LINE_SOURCE_ID = 'line';
 const POINTS_SOURCE_ID = 'points';
+const SELECTED_POINT_SOURCE_ID = 'selected-point';
 
 const EMPTY_LINE_COLLECTION = {
   type: 'FeatureCollection',
@@ -14,6 +15,11 @@ const EMPTY_LINE_COLLECTION = {
 };
 
 const EMPTY_POINTS = {
+  type: 'FeatureCollection',
+  features: [],
+};
+
+const EMPTY_SELECTED_POINTS = {
   type: 'FeatureCollection',
   features: [],
 };
@@ -50,6 +56,13 @@ function ensureMapLayers(map) {
     map.addSource(POINTS_SOURCE_ID, {
       type: 'geojson',
       data: EMPTY_POINTS,
+    });
+  }
+
+  if (!map.getSource(SELECTED_POINT_SOURCE_ID)) {
+    map.addSource(SELECTED_POINT_SOURCE_ID, {
+      type: 'geojson',
+      data: EMPTY_SELECTED_POINTS,
     });
   }
 
@@ -92,8 +105,22 @@ function ensureMapLayers(map) {
       type: 'circle',
       source: POINTS_SOURCE_ID,
       paint: {
-        'circle-radius': 2,
+        'circle-radius': 3,
         'circle-color': 'red',
+      },
+    });
+  }
+
+  if (!map.getLayer(SELECTED_POINT_SOURCE_ID)) {
+    map.addLayer({
+      id: SELECTED_POINT_SOURCE_ID,
+      type: 'circle',
+      source: SELECTED_POINT_SOURCE_ID,
+      paint: {
+        'circle-radius': 8,
+        'circle-color': '#ffffff',
+        'circle-stroke-color': '#dc2626',
+        'circle-stroke-width': 3,
       },
     });
   }
@@ -108,12 +135,17 @@ function normalizePoints(results) {
     .map((point) => {
       const lon = Number(point?.latlng?.longitude);
       const lat = Number(point?.latlng?.latitude);
+      const timestamp =
+        (typeof point?.time === 'string' && point.time) ||
+        (typeof point?.time?.iso === 'string' && point.time.iso) ||
+        (typeof point?.createdAt === 'string' && point.createdAt) ||
+        '';
       if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
         return null;
       }
       return {
         coord: [lon, lat],
-        data: point,
+        timestamp,
       };
     })
     .filter(Boolean);
@@ -124,7 +156,8 @@ export default function MapView({ blur, results }) {
   const mapRef = useRef(null);
   const fallbackAppliedRef = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
-  const { setErrorMsg } = useApp();
+  const [selectedPoint, setSelectedPoint] = useState(null);
+  const { setErrorMsg, setSelectedPointTimestamp } = useApp();
 
   const mapPoints = useMemo(() => normalizePoints(results), [results]);
 
@@ -141,11 +174,30 @@ export default function MapView({ blur, results }) {
     () =>
       turf.featureCollection(
         mapPoints.map((point) => {
-          return turf.point(point.coord, point.data);
+          return turf.point(point.coord, {
+            timestamp: point.timestamp,
+          });
         })
       ),
     [mapPoints]
   );
+
+  const selectedPoints = useMemo(
+    () =>
+      selectedPoint
+        ? turf.featureCollection([
+            turf.point(selectedPoint.coord, {
+              timestamp: selectedPoint.timestamp,
+            }),
+          ])
+        : EMPTY_SELECTED_POINTS,
+    [selectedPoint]
+  );
+
+  useEffect(() => {
+    setSelectedPoint(null);
+    setSelectedPointTimestamp('');
+  }, [mapPoints, setSelectedPointTimestamp]);
 
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) {
@@ -212,15 +264,71 @@ export default function MapView({ blur, results }) {
     }
 
     const map = mapRef.current;
+    const onPointClick = (event) => {
+      const feature = event?.features?.[0];
+      const coordinates = feature?.geometry?.coordinates;
+      if (!Array.isArray(coordinates) || coordinates.length < 2) {
+        return;
+      }
+
+      const lon = Number(coordinates[0]);
+      const lat = Number(coordinates[1]);
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
+        return;
+      }
+
+      const timestamp = typeof feature?.properties?.timestamp === 'string' ? feature.properties.timestamp : '';
+      setSelectedPoint({
+        coord: [lon, lat],
+        timestamp,
+      });
+      setSelectedPointTimestamp(timestamp);
+    };
+
+    const onPointMouseEnter = () => {
+      map.getCanvas().style.cursor = 'pointer';
+    };
+
+    const onPointMouseLeave = () => {
+      map.getCanvas().style.cursor = '';
+    };
+
+    map.on('click', POINTS_SOURCE_ID, onPointClick);
+    map.on('mouseenter', POINTS_SOURCE_ID, onPointMouseEnter);
+    map.on('mouseleave', POINTS_SOURCE_ID, onPointMouseLeave);
+
+    return () => {
+      map.off('click', POINTS_SOURCE_ID, onPointClick);
+      map.off('mouseenter', POINTS_SOURCE_ID, onPointMouseEnter);
+      map.off('mouseleave', POINTS_SOURCE_ID, onPointMouseLeave);
+      map.getCanvas().style.cursor = '';
+    };
+  }, [isMapReady, setSelectedPointTimestamp]);
+
+  useEffect(() => {
+    if (!isMapReady || !mapRef.current) {
+      return;
+    }
+
+    const map = mapRef.current;
     const lineSource = map.getSource(LINE_SOURCE_ID);
     const pointsSource = map.getSource(POINTS_SOURCE_ID);
+    const selectedPointsSource = map.getSource(SELECTED_POINT_SOURCE_ID);
 
-    if (!lineSource || !pointsSource || typeof lineSource.setData !== 'function' || typeof pointsSource.setData !== 'function') {
+    if (
+      !lineSource ||
+      !pointsSource ||
+      !selectedPointsSource ||
+      typeof lineSource.setData !== 'function' ||
+      typeof pointsSource.setData !== 'function' ||
+      typeof selectedPointsSource.setData !== 'function'
+    ) {
       return;
     }
 
     lineSource.setData(line);
     pointsSource.setData(points);
+    selectedPointsSource.setData(selectedPoints);
 
     if (lineFeature) {
       const [minX, minY, maxX, maxY] = turf.bbox(lineFeature);
@@ -254,7 +362,7 @@ export default function MapView({ blur, results }) {
         essential: true,
       });
     }
-  }, [coordinates, isMapReady, line, lineFeature, points]);
+  }, [coordinates, isMapReady, line, lineFeature, points, selectedPoints]);
 
   return (
     <div

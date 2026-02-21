@@ -97,6 +97,7 @@ export function AppProvider({ children }) {
   const [picking, setPicking] = useState(false);
   const [isFetchingPoints, setIsFetchingPoints] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [selectedPointTimestamp, setSelectedPointTimestamp] = useState('');
 
   const range = useMemo(() => toIsoRange(dateRange, timeFrom, timeTo), [dateRange, timeFrom, timeTo]);
 
@@ -155,6 +156,7 @@ export function AppProvider({ children }) {
   const logoutUser = useCallback(() => {
     persistUser({ name: null, sessionToken: null });
     setResults([]);
+    setSelectedPointTimestamp('');
     hidePicker();
   }, [hidePicker, persistUser]);
 
@@ -167,6 +169,7 @@ export function AppProvider({ children }) {
     try {
       const points = await fetchPoints(range[0], range[1], user.sessionToken);
       setResults(points);
+      setSelectedPointTimestamp('');
       return points;
     } catch (error) {
       setErrorMsg(error);
@@ -191,6 +194,8 @@ export function AppProvider({ children }) {
       timeTo,
       setTimeTo: setTimeToValue,
       results,
+      selectedPointTimestamp,
+      setSelectedPointTimestamp,
       picking,
       showPicker,
       hidePicker,
@@ -215,6 +220,7 @@ export function AppProvider({ children }) {
       picking,
       range,
       results,
+      selectedPointTimestamp,
       setDateRangeValue,
       setTimeFromValue,
       setTimeToValue,
