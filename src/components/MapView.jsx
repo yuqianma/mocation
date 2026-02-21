@@ -346,11 +346,15 @@ export default function MapView({ blur, results }) {
       const feature = extractSelectedFeature(map, event, lastTouchPointRef.current);
       lastTouchPointRef.current = null;
       if (!feature) {
+        setSelectedPoint(null);
+        setSelectedPointTimestamp('');
         return;
       }
 
       const selected = toSelectedPoint(feature);
       if (!selected) {
+        setSelectedPoint(null);
+        setSelectedPointTimestamp('');
         return;
       }
 
