@@ -3,26 +3,36 @@ name: CI
 on:
   push:
     branches:
-    - master
+      - master
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v1
-    - name: Install & Build
-      env:
-        VUE_APP_LC_ID: ${{ secrets.VUE_APP_LC_ID }}
-        VUE_APP_LC_KEY: ${{ secrets.VUE_APP_LC_KEY }}
-        VUE_APP_API_BASE_URL: ${{ secrets.VUE_APP_API_BASE_URL }}
-      run: |
-        npm ci
-        npm run build
-    - name: Deploy
-      uses: peaceiris/actions-gh-pages@v2.5.0
-      env:
-        ACTIONS_DEPLOY_KEY: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-        PUBLISH_BRANCH: gh-pages
-        PUBLISH_DIR: ./dist
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install & Build
+        env:
+          VITE_LC_ID: ${{ secrets.VITE_LC_ID || secrets.VUE_APP_LC_ID }}
+          VITE_LC_KEY: ${{ secrets.VITE_LC_KEY || secrets.VUE_APP_LC_KEY }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || secrets.VUE_APP_API_BASE_URL }}
+          VITE_MAPBOX_ACCESS_TOKEN: ${{ secrets.VITE_MAPBOX_ACCESS_TOKEN || secrets.VUE_APP_MAPBOX_ACCESS_TOKEN }}
+          VITE_DEV_USERNAME: ${{ secrets.VITE_DEV_USERNAME || secrets.VUE_APP_DEV_USERNAME }}
+          VITE_DEV_PASSWORD: ${{ secrets.VITE_DEV_PASSWORD || secrets.VUE_APP_DEV_PASSWORD }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          publish_branch: gh-pages
+          publish_dir: ./dist
