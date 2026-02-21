@@ -59,6 +59,7 @@ export default function QueryPanel() {
     picking,
     showPicker,
     hidePicker,
+    logoutUser,
     dateRange,
     setDateRange,
     timeFrom,
@@ -196,6 +197,9 @@ export default function QueryPanel() {
             </div>
           </CardContent>
           <CardFooter className="justify-end gap-2">
+            <Button variant="ghost" className="mr-auto" onClick={logoutUser}>
+              Logout
+            </Button>
             <Button variant="secondary" onClick={hidePicker}>
               Cancel
             </Button>
