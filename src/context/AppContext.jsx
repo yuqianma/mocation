@@ -34,15 +34,45 @@ function normalizeDateRange(range) {
   return safe.sort();
 }
 
-function normalizeHour(hour) {
-  const clamped = Math.max(0, Math.min(24, Number(hour) || 0));
-  return `${String(clamped).padStart(2, '0')}:00`;
+function padTimeUnit(value) {
+  return String(value).padStart(2, '0');
+}
+
+function normalizeTime(value, fallback) {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const match = trimmed.match(/^(\d{1,2}):(\d{1,2})$/);
+    if (match) {
+      const hour = Number(match[1]);
+      const minute = Number(match[2]);
+      if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+        return `${padTimeUnit(hour)}:${padTimeUnit(minute)}`;
+      }
+    }
+
+    const asNumber = Number(trimmed);
+    if (Number.isFinite(asNumber)) {
+      const clamped = Math.max(0, Math.min(23, Math.floor(asNumber)));
+      return `${padTimeUnit(clamped)}:00`;
+    }
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const clamped = Math.max(0, Math.min(23, Math.floor(value)));
+    return `${padTimeUnit(clamped)}:00`;
+  }
+
+  return fallback;
 }
 
 function toIsoRange(dateRange, timeFrom, timeTo) {
   const [fromDate, toDate] = normalizeDateRange(dateRange);
-  const from = dayjs(`${fromDate} ${timeFrom}`);
-  const to = dayjs(`${toDate} ${timeTo}`);
+  const defaultFrom = DEFAULT_RANGE[0].format('HH:mm');
+  const defaultTo = DEFAULT_RANGE[1].format('HH:mm');
+  const safeTimeFrom = normalizeTime(timeFrom, defaultFrom);
+  const safeTimeTo = normalizeTime(timeTo, defaultTo);
+  const from = dayjs(`${fromDate}T${safeTimeFrom}`);
+  const to = dayjs(`${toDate}T${safeTimeTo}`);
 
   const safeFrom = from.isValid() ? from : DEFAULT_RANGE[0];
   const safeTo = to.isValid() ? to : DEFAULT_RANGE[1];
@@ -83,12 +113,12 @@ export function AppProvider({ children }) {
     setDateRange(normalizeDateRange(nextRange));
   }, []);
 
-  const setTimeFromValue = useCallback((hour) => {
-    setTimeFrom(normalizeHour(hour));
+  const setTimeFromValue = useCallback((nextTime) => {
+    setTimeFrom((current) => normalizeTime(nextTime, current));
   }, []);
 
-  const setTimeToValue = useCallback((hour) => {
-    setTimeTo(normalizeHour(hour));
+  const setTimeToValue = useCallback((nextTime) => {
+    setTimeTo((current) => normalizeTime(nextTime, current));
   }, []);
 
   const showPicker = useCallback(() => {
