@@ -106,7 +106,7 @@ function ensureMapLayers(map) {
       type: 'circle',
       source: POINTS_SOURCE_ID,
       paint: {
-        'circle-radius': 4,
+        'circle-radius': 2,
         'circle-color': 'red',
       },
     });
@@ -152,8 +152,29 @@ function normalizePoints(results) {
     .filter(Boolean);
 }
 
-function extractSelectedFeature(map, event) {
-  const point = event?.point || (event?.lngLat ? map.project(event.lngLat) : null);
+function resolveEventPoint(map, event, fallbackPoint = null) {
+  if (event?.point) {
+    return event.point;
+  }
+
+  if (event?.lngLat) {
+    return map.project(event.lngLat);
+  }
+
+  const touch = event?.originalEvent?.changedTouches?.[0] || event?.originalEvent?.touches?.[0];
+  if (touch) {
+    const rect = map.getCanvas().getBoundingClientRect();
+    return {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+    };
+  }
+
+  return fallbackPoint;
+}
+
+function extractSelectedFeature(map, event, fallbackPoint = null) {
+  const point = resolveEventPoint(map, event, fallbackPoint);
   if (!point) {
     return null;
   }
@@ -164,7 +185,24 @@ function extractSelectedFeature(map, event) {
   ];
 
   const features = map.queryRenderedFeatures(queryBounds, { layers: [POINTS_SOURCE_ID] });
-  return features[0] || null;
+  if (!features.length) {
+    return null;
+  }
+
+  return features.reduce((closestFeature, feature) => {
+    const coordinates = feature?.geometry?.coordinates;
+    if (!Array.isArray(coordinates) || coordinates.length < 2) {
+      return closestFeature;
+    }
+
+    const rendered = map.project(coordinates);
+    const distanceSq = (rendered.x - point.x) ** 2 + (rendered.y - point.y) ** 2;
+
+    if (!closestFeature || distanceSq < closestFeature.distanceSq) {
+      return { feature, distanceSq };
+    }
+    return closestFeature;
+  }, null)?.feature;
 }
 
 function toSelectedPoint(feature) {
@@ -189,6 +227,7 @@ function toSelectedPoint(feature) {
 export default function MapView({ blur, results }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
+  const lastTouchPointRef = useRef(null);
   const fallbackAppliedRef = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
@@ -299,8 +338,13 @@ export default function MapView({ blur, results }) {
     }
 
     const map = mapRef.current;
+    const onTouchStart = (event) => {
+      lastTouchPointRef.current = resolveEventPoint(map, event, lastTouchPointRef.current);
+    };
+
     const selectFromEvent = (event) => {
-      const feature = extractSelectedFeature(map, event);
+      const feature = extractSelectedFeature(map, event, lastTouchPointRef.current);
+      lastTouchPointRef.current = null;
       if (!feature) {
         return;
       }
@@ -319,13 +363,21 @@ export default function MapView({ blur, results }) {
       map.getCanvas().style.cursor = feature ? 'pointer' : '';
     };
 
+    const onTouchCancel = () => {
+      lastTouchPointRef.current = null;
+    };
+
+    map.on('touchstart', onTouchStart);
     map.on('click', selectFromEvent);
     map.on('touchend', selectFromEvent);
+    map.on('touchcancel', onTouchCancel);
     map.on('mousemove', onMouseMove);
 
     return () => {
+      map.off('touchstart', onTouchStart);
       map.off('click', selectFromEvent);
       map.off('touchend', selectFromEvent);
+      map.off('touchcancel', onTouchCancel);
       map.off('mousemove', onMouseMove);
       map.getCanvas().style.cursor = '';
     };
@@ -355,7 +407,14 @@ export default function MapView({ blur, results }) {
     lineSource.setData(line);
     pointsSource.setData(points);
     selectedPointsSource.setData(selectedPoints);
+  }, [isMapReady, line, points, selectedPoints]);
 
+  useEffect(() => {
+    if (!isMapReady || !mapRef.current) {
+      return;
+    }
+
+    const map = mapRef.current;
     if (lineFeature) {
       const [minX, minY, maxX, maxY] = turf.bbox(lineFeature);
       if (isDegenerateBounds(minX, minY, maxX, maxY)) {
@@ -388,7 +447,7 @@ export default function MapView({ blur, results }) {
         essential: true,
       });
     }
-  }, [coordinates, isMapReady, line, lineFeature, points, selectedPoints]);
+  }, [coordinates, isMapReady, lineFeature]);
 
   return (
     <div

@@ -13,7 +13,8 @@ function formatSelectedTimestamp(value) {
     return '--';
   }
 
-  return String(value);
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format('MM-DD HH:mm') : '--';
 }
 
 export default function DashboardPage() {
