@@ -17,7 +17,9 @@ export default function DashboardPage() {
         // errors are surfaced through global alert state
       });
     }
-  }, [fetchPointsForCurrentRange, hidePicker, setBlur]);
+    // run only on first mount; range changes should not auto-close panel
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="pointer-events-none relative h-full w-full">
