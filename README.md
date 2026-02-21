@@ -32,8 +32,6 @@ Required variable names:
 - `VITE_LC_KEY`
 - `VITE_API_BASE_URL`
 - `VITE_MAPBOX_ACCESS_TOKEN`
-- `VITE_DEV_USERNAME`
-- `VITE_DEV_PASSWORD`
 
 ## Run
 
