@@ -23,10 +23,10 @@ jobs:
 
       - name: Install & Build
         env:
-          VITE_LC_ID: ${{ secrets.VITE_LC_ID || secrets.VUE_APP_LC_ID }}
-          VITE_LC_KEY: ${{ secrets.VITE_LC_KEY || secrets.VUE_APP_LC_KEY }}
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL || secrets.VUE_APP_API_BASE_URL }}
-          VITE_MAPBOX_ACCESS_TOKEN: ${{ secrets.VITE_MAPBOX_ACCESS_TOKEN || secrets.VUE_APP_MAPBOX_ACCESS_TOKEN }}
+          VITE_LC_ID: ${{ secrets.VITE_LC_ID }}
+          VITE_LC_KEY: ${{ secrets.VITE_LC_KEY }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_MAPBOX_ACCESS_TOKEN: ${{ secrets.VITE_MAPBOX_ACCESS_TOKEN }}
         run: |
           npm ci
           npm run build
