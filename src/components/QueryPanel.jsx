@@ -72,14 +72,18 @@ export default function QueryPanel() {
   }
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-20">
-      <button
-        type="button"
-        aria-label="Close query panel"
-        className="pointer-events-auto absolute inset-0 h-full w-full bg-transparent"
-        onClick={hidePicker}
-      />
-      <div className="pointer-events-auto absolute left-1/2 top-4 w-[min(96vw,520px)] -translate-x-1/2">
+    <div
+      className="absolute inset-0 z-20 pointer-events-auto"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          hidePicker();
+        }
+      }}
+    >
+      <div
+        className="absolute left-1/2 top-4 w-[min(96vw,520px)] -translate-x-1/2"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
