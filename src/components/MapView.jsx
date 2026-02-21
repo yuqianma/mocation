@@ -5,6 +5,9 @@ import { cn } from '@/lib/utils';
 import { appEnv } from '@/lib/env';
 import { useApp } from '@/context/AppContext';
 
+const LINE_SOURCE_ID = 'line';
+const POINTS_SOURCE_ID = 'points';
+
 const EMPTY_LINE_COLLECTION = {
   type: 'FeatureCollection',
   features: [],
@@ -14,6 +17,72 @@ const EMPTY_POINTS = {
   type: 'FeatureCollection',
   features: [],
 };
+
+function ensureMapLayers(map) {
+  if (!map.getSource(LINE_SOURCE_ID)) {
+    map.addSource(LINE_SOURCE_ID, {
+      type: 'geojson',
+      lineMetrics: true,
+      data: EMPTY_LINE_COLLECTION,
+    });
+  }
+
+  if (!map.getSource(POINTS_SOURCE_ID)) {
+    map.addSource(POINTS_SOURCE_ID, {
+      type: 'geojson',
+      data: EMPTY_POINTS,
+    });
+  }
+
+  if (!map.getLayer(LINE_SOURCE_ID)) {
+    map.addLayer({
+      id: LINE_SOURCE_ID,
+      type: 'line',
+      source: LINE_SOURCE_ID,
+      paint: {
+        'line-color': 'red',
+        'line-width': 5,
+        'line-gradient': [
+          'interpolate',
+          ['linear'],
+          ['line-progress'],
+          0,
+          'blue',
+          0.1,
+          'royalblue',
+          0.3,
+          'cyan',
+          0.5,
+          'lime',
+          0.7,
+          'yellow',
+          1,
+          'red',
+        ],
+      },
+      layout: {
+        'line-cap': 'round',
+        'line-join': 'round',
+      },
+    });
+  }
+
+  if (!map.getLayer(POINTS_SOURCE_ID)) {
+    map.addLayer({
+      id: POINTS_SOURCE_ID,
+      type: 'circle',
+      source: POINTS_SOURCE_ID,
+      paint: {
+        'circle-radius': 2,
+        'circle-color': 'red',
+      },
+    });
+  }
+}
+
+function isDegenerateBounds(minX, minY, maxX, maxY) {
+  return Math.abs(minX - maxX) < 1e-9 && Math.abs(minY - maxY) < 1e-9;
+}
 
 function normalizePoints(results) {
   return results
@@ -59,12 +128,12 @@ export default function MapView({ blur, results }) {
   );
 
   useEffect(() => {
-    if (mapRef.current) {
+    if (mapRef.current || !mapContainerRef.current) {
       return;
     }
 
     if (!appEnv.mapboxAccessToken) {
-      setErrorMsg({ error: 'Missing Mapbox token: set VITE_MAPBOX_ACCESS_TOKEN or VUE_APP_MAPBOX_ACCESS_TOKEN.' });
+      setErrorMsg({ error: 'Missing Mapbox token: set VITE_MAPBOX_ACCESS_TOKEN.' });
       return;
     }
 
@@ -73,66 +142,24 @@ export default function MapView({ blur, results }) {
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/light-v10',
+      center: [0, 0],
+      zoom: 1,
     });
 
     mapRef.current = map;
 
-    map.on('load', () => {
-      map.addSource('line', {
-        type: 'geojson',
-        lineMetrics: true,
-        data: EMPTY_LINE_COLLECTION,
-      });
-
-      map.addSource('points', {
-        type: 'geojson',
-        data: EMPTY_POINTS,
-      });
-
-      map.addLayer({
-        id: 'line',
-        type: 'line',
-        source: 'line',
-        paint: {
-          'line-color': 'red',
-          'line-width': 5,
-          'line-gradient': [
-            'interpolate',
-            ['linear'],
-            ['line-progress'],
-            0,
-            'blue',
-            0.1,
-            'royalblue',
-            0.3,
-            'cyan',
-            0.5,
-            'lime',
-            0.7,
-            'yellow',
-            1,
-            'red',
-          ],
-        },
-        layout: {
-          'line-cap': 'round',
-          'line-join': 'round',
-        },
-      });
-
-      map.addLayer({
-        id: 'points',
-        type: 'circle',
-        source: 'points',
-        paint: {
-          'circle-radius': 2,
-          'circle-color': 'red',
-        },
-      });
-
+    const onLoad = () => {
+      ensureMapLayers(map);
+      map.resize();
       setIsMapReady(true);
-    });
+    };
 
+    const onStyleLoad = () => {
+      ensureMapLayers(map);
+    };
+
+    map.on('load', onLoad);
+    map.on('style.load', onStyleLoad);
     map.on('error', (event) => {
       if (event?.error?.message) {
         setErrorMsg({ error: event.error.message });
@@ -141,6 +168,8 @@ export default function MapView({ blur, results }) {
 
     return () => {
       setIsMapReady(false);
+      map.off('load', onLoad);
+      map.off('style.load', onStyleLoad);
       map.remove();
       mapRef.current = null;
     };
@@ -152,10 +181,10 @@ export default function MapView({ blur, results }) {
     }
 
     const map = mapRef.current;
-    const lineSource = map.getSource('line');
-    const pointsSource = map.getSource('points');
+    const lineSource = map.getSource(LINE_SOURCE_ID);
+    const pointsSource = map.getSource(POINTS_SOURCE_ID);
 
-    if (!lineSource || !pointsSource) {
+    if (!lineSource || !pointsSource || typeof lineSource.setData !== 'function' || typeof pointsSource.setData !== 'function') {
       return;
     }
 
@@ -164,6 +193,15 @@ export default function MapView({ blur, results }) {
 
     if (lineFeature) {
       const [minX, minY, maxX, maxY] = turf.bbox(lineFeature);
+      if (isDegenerateBounds(minX, minY, maxX, maxY)) {
+        map.flyTo({
+          center: coordinates[coordinates.length - 1],
+          zoom: 14,
+          essential: true,
+        });
+        return;
+      }
+
       map.fitBounds(
         [
           [minX, minY],

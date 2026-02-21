@@ -2,7 +2,7 @@ import { appEnv } from '@/lib/env';
 
 function ensureBaseUrl() {
   if (!appEnv.apiBaseUrl) {
-    throw { error: 'Missing API base URL env var (VITE_API_BASE_URL or VUE_APP_API_BASE_URL).' };
+    throw { error: 'Missing API base URL env var: set VITE_API_BASE_URL.' };
   }
 }
 

@@ -39,6 +39,21 @@ function normalizeHour(hour) {
   return `${String(clamped).padStart(2, '0')}:00`;
 }
 
+function toIsoRange(dateRange, timeFrom, timeTo) {
+  const [fromDate, toDate] = normalizeDateRange(dateRange);
+  const from = dayjs(`${fromDate} ${timeFrom}`);
+  const to = dayjs(`${toDate} ${timeTo}`);
+
+  const safeFrom = from.isValid() ? from : DEFAULT_RANGE[0];
+  const safeTo = to.isValid() ? to : DEFAULT_RANGE[1];
+
+  if (safeFrom.isAfter(safeTo)) {
+    return [safeTo.toISOString(), safeFrom.toISOString()];
+  }
+
+  return [safeFrom.toISOString(), safeTo.toISOString()];
+}
+
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
@@ -53,13 +68,7 @@ export function AppProvider({ children }) {
   const [isFetchingPoints, setIsFetchingPoints] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const range = useMemo(() => {
-    const [fromDate, toDate] = normalizeDateRange(dateRange);
-    return [
-      dayjs(`${fromDate} ${timeFrom}`).toISOString(),
-      dayjs(`${toDate} ${timeTo}`).toISOString(),
-    ];
-  }, [dateRange, timeFrom, timeTo]);
+  const range = useMemo(() => toIsoRange(dateRange, timeFrom, timeTo), [dateRange, timeFrom, timeTo]);
 
   const persistUser = useCallback((nextUser) => {
     setUser(nextUser);

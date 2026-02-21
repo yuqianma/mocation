@@ -26,16 +26,14 @@ This project was migrated from Vue 2 to:
 Use `.env.local` for local development.
 You can copy variable names from `.env.example`.
 
-Supported variable names:
+Required variable names:
 
-- `VITE_LC_ID` or `VUE_APP_LC_ID`
-- `VITE_LC_KEY` or `VUE_APP_LC_KEY`
-- `VITE_API_BASE_URL` or `VUE_APP_API_BASE_URL`
-- `VITE_MAPBOX_ACCESS_TOKEN` or `VUE_APP_MAPBOX_ACCESS_TOKEN`
-- `VITE_DEV_USERNAME` or `VUE_APP_DEV_USERNAME`
-- `VITE_DEV_PASSWORD` or `VUE_APP_DEV_PASSWORD`
-
-Vite is configured with `envPrefix: ['VITE_', 'VUE_APP_']`, so old and new names both work.
+- `VITE_LC_ID`
+- `VITE_LC_KEY`
+- `VITE_API_BASE_URL`
+- `VITE_MAPBOX_ACCESS_TOKEN`
+- `VITE_DEV_USERNAME`
+- `VITE_DEV_PASSWORD`
 
 ## Run
 
@@ -53,5 +51,5 @@ npm run preview
 
 ## Notes
 
-- Mapbox token must be present in env (`VITE_MAPBOX_ACCESS_TOKEN` recommended).
+- Mapbox token must be present in env (`VITE_MAPBOX_ACCESS_TOKEN`).
 - Backup env file `.env.bk.local` is intentionally not used/modified by this migration.
