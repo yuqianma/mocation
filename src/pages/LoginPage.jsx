@@ -52,7 +52,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="grid h-full w-full place-items-center px-4">
+    <div className="pointer-events-auto grid h-full w-full place-items-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Login</CardTitle>

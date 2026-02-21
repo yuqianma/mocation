@@ -20,7 +20,7 @@ export default function DashboardPage() {
   }, [fetchPointsForCurrentRange, hidePicker, setBlur]);
 
   return (
-    <div className="relative h-full w-full">
+    <div className="pointer-events-none relative h-full w-full">
       <div className="pointer-events-none absolute right-6 top-6 z-20">
         <div className="pointer-events-auto flex items-center gap-2 rounded-lg border border-slate-200 bg-white/95 p-2 shadow-panel backdrop-blur">
           <Button

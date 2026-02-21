@@ -10,7 +10,7 @@ export default function App() {
     <div className="relative h-full w-full overflow-hidden">
       <MapView blur={blur} results={results} />
       <ErrorBanner />
-      <div className="absolute inset-0 z-20">
+      <div className="pointer-events-none absolute inset-0 z-20">
         <AppRoutes />
       </div>
     </div>

@@ -18,6 +18,25 @@ const EMPTY_POINTS = {
   features: [],
 };
 
+const OSM_FALLBACK_STYLE = {
+  version: 8,
+  sources: {
+    osm: {
+      type: 'raster',
+      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+      tileSize: 256,
+      attribution: '© OpenStreetMap contributors',
+    },
+  },
+  layers: [
+    {
+      id: 'osm',
+      type: 'raster',
+      source: 'osm',
+    },
+  ],
+};
+
 function ensureMapLayers(map) {
   if (!map.getSource(LINE_SOURCE_ID)) {
     map.addSource(LINE_SOURCE_ID, {
@@ -103,6 +122,7 @@ function normalizePoints(results) {
 export default function MapView({ blur, results }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
+  const fallbackAppliedRef = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const { setErrorMsg } = useApp();
 
@@ -132,16 +152,18 @@ export default function MapView({ blur, results }) {
       return;
     }
 
-    if (!appEnv.mapboxAccessToken) {
-      setErrorMsg({ error: 'Missing Mapbox token: set VITE_MAPBOX_ACCESS_TOKEN.' });
-      return;
+    const hasMapboxToken = Boolean(appEnv.mapboxAccessToken);
+    if (hasMapboxToken) {
+      mapboxgl.accessToken = appEnv.mapboxAccessToken;
     }
 
-    mapboxgl.accessToken = appEnv.mapboxAccessToken;
+    if (!hasMapboxToken) {
+      setErrorMsg({ error: 'No VITE_MAPBOX_ACCESS_TOKEN found. Using OSM fallback map.' });
+    }
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/light-v10',
+      style: hasMapboxToken ? 'mapbox://styles/mapbox/light-v10' : OSM_FALLBACK_STYLE,
       center: [0, 0],
       zoom: 1,
     });
@@ -161,8 +183,17 @@ export default function MapView({ blur, results }) {
     map.on('load', onLoad);
     map.on('style.load', onStyleLoad);
     map.on('error', (event) => {
-      if (event?.error?.message) {
-        setErrorMsg({ error: event.error.message });
+      const message = event?.error?.message || '';
+
+      if (!fallbackAppliedRef.current && /403|401|forbidden|unauthorized/i.test(message)) {
+        fallbackAppliedRef.current = true;
+        map.setStyle(OSM_FALLBACK_STYLE);
+        setErrorMsg({ error: 'Mapbox token rejected (403). Switched to OSM fallback map.' });
+        return;
+      }
+
+      if (message) {
+        setErrorMsg({ error: message });
       }
     });
 
