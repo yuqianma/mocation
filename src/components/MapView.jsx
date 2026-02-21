@@ -8,6 +8,7 @@ import { useApp } from '@/context/AppContext';
 const LINE_SOURCE_ID = 'line';
 const POINTS_SOURCE_ID = 'points';
 const SELECTED_POINT_SOURCE_ID = 'selected-point';
+const POINT_SELECTION_HIT_RADIUS_PX = 20;
 
 const EMPTY_LINE_COLLECTION = {
   type: 'FeatureCollection',
@@ -105,7 +106,7 @@ function ensureMapLayers(map) {
       type: 'circle',
       source: POINTS_SOURCE_ID,
       paint: {
-        'circle-radius': 3,
+        'circle-radius': 4,
         'circle-color': 'red',
       },
     });
@@ -149,6 +150,40 @@ function normalizePoints(results) {
       };
     })
     .filter(Boolean);
+}
+
+function extractSelectedFeature(map, event) {
+  const point = event?.point || (event?.lngLat ? map.project(event.lngLat) : null);
+  if (!point) {
+    return null;
+  }
+
+  const queryBounds = [
+    [point.x - POINT_SELECTION_HIT_RADIUS_PX, point.y - POINT_SELECTION_HIT_RADIUS_PX],
+    [point.x + POINT_SELECTION_HIT_RADIUS_PX, point.y + POINT_SELECTION_HIT_RADIUS_PX],
+  ];
+
+  const features = map.queryRenderedFeatures(queryBounds, { layers: [POINTS_SOURCE_ID] });
+  return features[0] || null;
+}
+
+function toSelectedPoint(feature) {
+  const coordinates = feature?.geometry?.coordinates;
+  if (!Array.isArray(coordinates) || coordinates.length < 2) {
+    return null;
+  }
+
+  const lon = Number(coordinates[0]);
+  const lat = Number(coordinates[1]);
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
+    return null;
+  }
+
+  const timestamp = typeof feature?.properties?.timestamp === 'string' ? feature.properties.timestamp : '';
+  return {
+    coord: [lon, lat],
+    timestamp,
+  };
 }
 
 export default function MapView({ blur, results }) {
@@ -264,43 +299,34 @@ export default function MapView({ blur, results }) {
     }
 
     const map = mapRef.current;
-    const onPointClick = (event) => {
-      const feature = event?.features?.[0];
-      const coordinates = feature?.geometry?.coordinates;
-      if (!Array.isArray(coordinates) || coordinates.length < 2) {
+    const selectFromEvent = (event) => {
+      const feature = extractSelectedFeature(map, event);
+      if (!feature) {
         return;
       }
 
-      const lon = Number(coordinates[0]);
-      const lat = Number(coordinates[1]);
-      if (!Number.isFinite(lon) || !Number.isFinite(lat)) {
+      const selected = toSelectedPoint(feature);
+      if (!selected) {
         return;
       }
 
-      const timestamp = typeof feature?.properties?.timestamp === 'string' ? feature.properties.timestamp : '';
-      setSelectedPoint({
-        coord: [lon, lat],
-        timestamp,
-      });
-      setSelectedPointTimestamp(timestamp);
+      setSelectedPoint(selected);
+      setSelectedPointTimestamp(selected.timestamp);
     };
 
-    const onPointMouseEnter = () => {
-      map.getCanvas().style.cursor = 'pointer';
+    const onMouseMove = (event) => {
+      const feature = extractSelectedFeature(map, event);
+      map.getCanvas().style.cursor = feature ? 'pointer' : '';
     };
 
-    const onPointMouseLeave = () => {
-      map.getCanvas().style.cursor = '';
-    };
-
-    map.on('click', POINTS_SOURCE_ID, onPointClick);
-    map.on('mouseenter', POINTS_SOURCE_ID, onPointMouseEnter);
-    map.on('mouseleave', POINTS_SOURCE_ID, onPointMouseLeave);
+    map.on('click', selectFromEvent);
+    map.on('touchend', selectFromEvent);
+    map.on('mousemove', onMouseMove);
 
     return () => {
-      map.off('click', POINTS_SOURCE_ID, onPointClick);
-      map.off('mouseenter', POINTS_SOURCE_ID, onPointMouseEnter);
-      map.off('mouseleave', POINTS_SOURCE_ID, onPointMouseLeave);
+      map.off('click', selectFromEvent);
+      map.off('touchend', selectFromEvent);
+      map.off('mousemove', onMouseMove);
       map.getCanvas().style.cursor = '';
     };
   }, [isMapReady, setSelectedPointTimestamp]);

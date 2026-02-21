@@ -40,7 +40,7 @@ export default function DashboardPage() {
 
   return (
     <div className="pointer-events-none relative h-full w-full">
-      <div className="absolute right-4 top-4 z-20 sm:right-6 sm:top-6">
+      <div className="absolute left-4 top-4 z-20 sm:left-6 sm:top-6">
         <div className="rounded-xl border border-white/55 bg-white/35 px-4 py-2 text-xs text-slate-700 shadow-lg backdrop-blur-sm sm:px-5">
           <div className="h-1 w-44 rounded-full bg-gradient-to-r from-blue-600 via-lime-400 to-red-500 sm:w-60" />
           <div className="mt-1.5 flex items-center justify-between gap-6 font-medium">
